@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:agents_db}
+    username: ${POSTGRES_USER:vrms}
+    password: ${POSTGRES_PASSWORD:vrms}
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
