@@ -48,6 +48,22 @@ public class Registration {
         this.expiry = newExpiry;
     }
 
+    // Used for NEW registration creation
+    public static Registration createNew(
+            RegistrationId id,
+            VehicleRef vehicleId,
+            OwnerRef ownerId,
+            AgentRef agentId,
+            PlateNumber plate,
+            ExpiryDate expiry
+    ) {
+        if (!expiry.isFuture()) {
+            throw new ExpiryDateMustBeFutureException("Expiry must be in the future");
+        }
+
+        return new Registration(id, vehicleId, ownerId, agentId, plate, expiry);
+    }
+
     public void cancel() {
         this.status = RegistrationStatus.CANCELLED;
     }

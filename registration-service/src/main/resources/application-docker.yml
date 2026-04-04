@@ -1,0 +1,7 @@
+services:
+  cars:
+    base-url: http://cars-service:8080
+  owners:
+    base-url: http://owners-service:8080
+  agents:
+    base-url: http://agents-service:8080

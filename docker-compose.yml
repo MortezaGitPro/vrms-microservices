@@ -1,0 +1,140 @@
+version: "3.9"
+
+services:
+  # ---------------- DATABASES ----------------
+  cars-db:
+    image: postgres:16
+    container_name: cars-db
+    environment:
+      POSTGRES_DB: cars_db
+      POSTGRES_USER: vrms
+      POSTGRES_PASSWORD: vrms
+    ports:
+      - "5433:5432"
+    volumes:
+      - cars_pg_data:/var/lib/postgresql/data
+
+  owners-db:
+    image: postgres:16
+    container_name: owners-db
+    environment:
+      POSTGRES_DB: owners_db
+      POSTGRES_USER: vrms
+      POSTGRES_PASSWORD: vrms
+    ports:
+      - "5434:5432"
+    volumes:
+      - owners_pg_data:/var/lib/postgresql/data
+
+  agents-db:
+    image: postgres:16
+    container_name: agents-db
+    environment:
+      POSTGRES_DB: agents_db
+      POSTGRES_USER: vrms
+      POSTGRES_PASSWORD: vrms
+    ports:
+      - "5435:5432"
+    volumes:
+      - agents_pg_data:/var/lib/postgresql/data
+
+  registration-db:
+    image: postgres:16
+    container_name: registration-db
+    environment:
+      POSTGRES_DB: registration_db
+      POSTGRES_USER: vrms
+      POSTGRES_PASSWORD: vrms
+    ports:
+      - "5436:5432"
+    volumes:
+      - registration_pg_data:/var/lib/postgresql/data
+
+  # ---------------- SERVICES ----------------
+  cars-service:
+    build: ./cars-service
+    container_name: cars-service
+    environment:
+      SPRING_PROFILES_ACTIVE: pg
+      POSTGRES_HOST: cars-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: cars_db
+      POSTGRES_USER: vrms
+      POSTGRES_PASSWORD: vrms
+      SERVER_PORT: 8080
+    depends_on:
+      - cars-db
+    ports:
+      - "8081:8080"
+
+  owners-service:
+    build: ./owners-service
+    container_name: owners-service
+    environment:
+      SPRING_PROFILES_ACTIVE: pg
+      POSTGRES_HOST: owners-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: owners_db
+      POSTGRES_USER: vrms
+      POSTGRES_PASSWORD: vrms
+      SERVER_PORT: 8080
+    depends_on:
+      - owners-db
+    ports:
+      - "8082:8080"
+
+  agents-service:
+    build: ./agents-service
+    container_name: agents-service
+    environment:
+      SPRING_PROFILES_ACTIVE: pg
+      POSTGRES_HOST: agents-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: agents_db
+      POSTGRES_USER: vrms
+      POSTGRES_PASSWORD: vrms
+      SERVER_PORT: 8080
+    depends_on:
+      - agents-db
+    ports:
+      - "8083:8080"
+
+  registration-service:
+    build: ./registration-service
+    container_name: registration-service
+    environment:
+      SPRING_PROFILES_ACTIVE: pg,docker
+      POSTGRES_HOST: registration-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: registration_db
+      POSTGRES_USER: vrms
+      POSTGRES_PASSWORD: vrms
+      SERVER_PORT: 8080
+    depends_on:
+      - registration-db
+      - cars-service
+      - owners-service
+      - agents-service
+    ports:
+      - "8084:8080"
+
+  # ---------------- API GATEWAY ----------------
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+    depends_on:
+      - cars-service
+      - owners-service
+      - agents-service
+      - registration-service
+    ports:
+      - "8080:8080"
+
+volumes:
+  cars_pg_data:
+  owners_pg_data:
+  agents_pg_data:
+  registration_pg_data:

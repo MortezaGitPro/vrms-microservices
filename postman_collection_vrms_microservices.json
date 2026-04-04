@@ -1,0 +1,2429 @@
+{
+  "info": {
+    "_postman_id": "a4120bc0-9b62-4c0f-bc5d-f8fa8962b0cf",
+    "name": "VRMS - Microservices",
+    "description": "VRMS API tests aligned with controllers in src/main/java/com/champsoft/vrms-microservices/**/api.\n\nBASE\n\n- Base URL: {{baseUrl}}\n    \n\nHOW IDs ARE STORED (IMPORTANT)\n\n- This collection stores IDs in COLLECTION variables (pm.collectionVariables)\n    \n    - ownerId, agentId, vehicleId, registrationId\n        \n    - inactiveOwnerId, inactiveAgentId, inactiveVehicleId\n        \n- This works even if you do NOT select a Postman Environment.\n    \n\nActivate/Suspend requests may return either:\n\n- 200 + JSON body (with id/status), OR\n    \n- 204 No Content  \n    Tests below handle BOTH patterns.\n    \n\nSUGGESTED RUN ORDER\n\n1) Owners -> Create, Activate  \n2) Agents -> Create, Activate  \n3) Cars -> Create, Activate  \n4) Registration -> Register\n\nENDPOINT LIST (DOCUMENTATION)  \nOWNERS\n\n- POST /api/owners\n    \n- POST /api/owners/{id}/activate\n    \n- POST /api/owners/{id}/suspend\n    \n- GET /api/owners\n    \n- GET /api/owners/{id}\n    \n- PUT /api/owners/{id}\n    \n- DELETE /api/owners/{id}\n    \n\nAGENTS\n\n- POST /api/agents\n    \n- POST /api/agents/{id}/activate\n    \n- GET /api/agents\n    \n- GET /api/agents/{id}\n    \n- PUT /api/agents/{id}\n    \n- DELETE /api/agents/{id}\n    \n\nCARS (VEHICLES)\n\n- POST /api/cars\n    \n- POST /api/cars/{id}/activate\n    \n- GET /api/cars\n    \n- GET /api/cars/{id}\n    \n- PUT /api/cars/{id}\n    \n- DELETE /api/cars/{id}\n    \n\nREGISTRATIONS\n\n- POST /api/registrations\n    \n- GET /api/registrations\n    \n- GET /api/registrations/{id}\n    \n- POST /api/registrations/{id}/renew\n    \n- POST /api/registrations/{id}/cancel\n    \n- DELETE /api/registrations/{id}\n    \n\nNOTES\n\n- Safe for H2 in-memory DB (fresh data per run).\n    \n- Auto-setup runs only in Collection Runner.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "21908877"
+  },
+  "item": [
+    {
+      "name": "Owners",
+      "item": [
+        {
+          "name": "Create Owner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const json = pm.response.json();",
+                  "const id = json.id || json.ownerId || (json.data && json.data.id);",
+                  "pm.test('Response returned an id', function () { pm.expect(id, 'id missing in response').to.be.ok; });",
+                  "pm.collectionVariables.set('ownerId', id);",
+                  "pm.test('ownerId saved (collection)', function () { pm.expect(pm.collectionVariables.get('ownerId')).to.not.be.empty; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"{{validOwnerName}}\",\n  \"address\": \"{{validAddress}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/owners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "owners"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Owner - Invalid Name (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"{{invalidOwnerName}}\",\n  \"address\": \"{{validAddress}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/owners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "owners"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Owner - Duplicate (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 409', function () { pm.response.to.have.status(409); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"{{validOwnerName}}\",\n  \"address\": \"{{validAddress}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/owners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "owners"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Activate Owner",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const id = pm.collectionVariables.get('ownerId');",
+                  "if (!id) throw new Error('ownerId is empty. Run Create Owner first (it saves to collection variables).');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 204', function () { pm.expect([200, 204]).to.include(pm.response.code); });",
+                  "let json = null; try { json = pm.response.json(); } catch(e) {}",
+                  "if (json) {",
+                  "  const id = json.id || json.ownerId || (json.data && json.data.id);",
+                  "  if (id) pm.collectionVariables.set('ownerId', id);",
+                  "}",
+                  "pm.test('ownerId exists (collection)', function () { pm.expect(pm.collectionVariables.get('ownerId')).to.not.be.empty; });",
+                  "if (json && json.status) { pm.test('Owner is ACTIVE', () => pm.expect(json.status).to.eql('ACTIVE')); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/owners/{{ownerId}}/activate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "owners",
+                "{{ownerId}}",
+                "activate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Suspend Owner",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const id = pm.collectionVariables.get('ownerId');",
+                  "if (!id) throw new Error('ownerId is empty. Run Create Owner first (it saves to collection variables).');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 204', function () { pm.expect([200, 204]).to.include(pm.response.code); });",
+                  "let json = null; try { json = pm.response.json(); } catch(e) {}",
+                  "if (json) {",
+                  "  const id = json.id || json.ownerId || (json.data && json.data.id);",
+                  "  if (id) pm.collectionVariables.set('ownerId', id);",
+                  "}",
+                  "pm.test('ownerId exists (collection)', function () { pm.expect(pm.collectionVariables.get('ownerId')).to.not.be.empty; });",
+                  "if (json && json.status) { pm.test('Owner is SUSPENDED', () => pm.expect(json.status).to.eql('SUSPENDED')); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/owners/{{ownerId}}/suspend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "owners",
+                "{{ownerId}}",
+                "suspend"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Owners",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/owners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "owners"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Owner By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/owners/{{ownerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "owners",
+                "{{ownerId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Owner By Id - Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/owners/{{missingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "owners",
+                "{{missingId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Owner",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe Updated\",\n  \"address\": \"456 Sherbrooke St\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/owners/{{ownerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "owners",
+                "{{ownerId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Owner - Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe Updated\",\n  \"address\": \"456 Sherbrooke St\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/owners/{{missingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "owners",
+                "{{missingId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Owner",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/owners/{{ownerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "owners",
+                "{{ownerId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Owner - Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/owners/{{missingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "owners",
+                "{{missingId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Owner CRUD endpoints. Status values: INACTIVE, ACTIVE, SUSPENDED."
+    },
+    {
+      "name": "Agents",
+      "item": [
+        {
+          "name": "Create Agent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const json = pm.response.json();",
+                  "const id = json.id || json.agentId || (json.data && json.data.id);",
+                  "pm.test('Response returned an id', function () { pm.expect(id, 'id missing in response').to.be.ok; });",
+                  "pm.collectionVariables.set('agentId', id);",
+                  "pm.test('agentId saved (collection)', function () { pm.expect(pm.collectionVariables.get('agentId')).to.not.be.empty; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{validAgentName}}\",\n  \"role\": \"{{validAgentRole}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agents"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Agent - Invalid Name (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{invalidAgentName}}\",\n  \"role\": \"{{validAgentRole}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agents"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Agent - Invalid Role (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{validAgentName}}\",\n  \"role\": \"{{invalidAgentRole}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agents"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Agent - Duplicate (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 409', function () { pm.response.to.have.status(409); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{validAgentName}}\",\n  \"role\": \"{{validAgentRole}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agents"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Activate Agent",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const id = pm.collectionVariables.get('agentId');",
+                  "if (!id) throw new Error('agentId is empty. Run Create Agent first (it saves to collection variables).');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 204', function () { pm.expect([200, 204]).to.include(pm.response.code); });",
+                  "let json = null; try { json = pm.response.json(); } catch(e) {}",
+                  "if (json) {",
+                  "  const id = json.id || json.agentId || (json.data && json.data.id);",
+                  "  if (id) pm.collectionVariables.set('agentId', id);",
+                  "}",
+                  "pm.test('agentId exists (collection)', function () { pm.expect(pm.collectionVariables.get('agentId')).to.not.be.empty; });",
+                  "if (json && json.status) { pm.test('Agent is ACTIVE', () => pm.expect(json.status).to.eql('ACTIVE')); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/agents/{{agentId}}/activate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "{{agentId}}",
+                "activate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Agents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/agents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agents"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Agent By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/agents/{{agentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "{{agentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Agent By Id - Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/agents/{{missingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "{{missingId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Agent",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice Agent Updated\",\n  \"role\": \"SUPERVISOR\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agents/{{agentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "{{agentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Agent - Invalid Role (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice Agent Updated\",\n  \"role\": \"{{invalidAgentRole}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agents/{{agentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "{{agentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Agent - Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice Agent Updated\",\n  \"role\": \"SUPERVISOR\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agents/{{missingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "{{missingId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Agent",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/agents/{{agentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "{{agentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Agent - Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/agents/{{missingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "{{missingId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Agent CRUD endpoints. Role values: CLERK, SUPERVISOR."
+    },
+    {
+      "name": "Cars (Vehicles)",
+      "item": [
+        {
+          "name": "Create Vehicle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const json = pm.response.json();",
+                  "const id = json.id || json.vehicleId || (json.data && json.data.id);",
+                  "pm.test('Response returned an id', function () { pm.expect(id, 'id missing in response').to.be.ok; });",
+                  "pm.collectionVariables.set('vehicleId', id);",
+                  "pm.test('vehicleId saved (collection)', function () { pm.expect(pm.collectionVariables.get('vehicleId')).to.not.be.empty; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vin\": \"{{validVin}}\",\n  \"make\": \"{{validMake}}\",\n  \"model\": \"{{validModel}}\",\n  \"year\": {{validYear}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cars",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Vehicle - Invalid VIN (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vin\": \"{{invalidVin}}\",\n  \"make\": \"{{validMake}}\",\n  \"model\": \"{{validModel}}\",\n  \"year\": {{validYear}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cars",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Vehicle - Invalid Year Low (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vin\": \"1HGCM82633A004353\",\n  \"make\": \"{{validMake}}\",\n  \"model\": \"{{validModel}}\",\n  \"year\": {{invalidYearLow}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cars",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Vehicle - Invalid Year High (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vin\": \"1HGCM82633A004354\",\n  \"make\": \"{{validMake}}\",\n  \"model\": \"{{validModel}}\",\n  \"year\": {{invalidYearHigh}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cars",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Vehicle - Duplicate VIN (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 409', function () { pm.response.to.have.status(409); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vin\": \"{{duplicateVin}}\",\n  \"make\": \"Toyota\",\n  \"model\": \"Corolla\",\n  \"year\": 2022\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cars",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Activate Vehicle",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const id = pm.collectionVariables.get('vehicleId');",
+                  "if (!id) throw new Error('vehicleId is empty. Run Create Vehicle first (it saves to collection variables).');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 204', function () { pm.expect([200, 204]).to.include(pm.response.code); });",
+                  "let json = null; try { json = pm.response.json(); } catch(e) {}",
+                  "if (json) {",
+                  "  const id = json.id || json.vehicleId || (json.data && json.data.id);",
+                  "  if (id) pm.collectionVariables.set('vehicleId', id);",
+                  "}",
+                  "pm.test('vehicleId exists (collection)', function () { pm.expect(pm.collectionVariables.get('vehicleId')).to.not.be.empty; });",
+                  "if (json && json.status) { pm.test('Vehicle is ACTIVE', () => pm.expect(json.status).to.eql('ACTIVE')); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cars/{{vehicleId}}/activate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars",
+                "{{vehicleId}}",
+                "activate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Activate Vehicle - Already Active (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cars/{{vehicleId}}/activate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars",
+                "{{vehicleId}}",
+                "activate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Vehicles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cars",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Vehicle By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cars/{{vehicleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars",
+                "{{vehicleId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Vehicle By Id - Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cars/{{missingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars",
+                "{{missingId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Vehicle",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"make\": \"Honda\",\n  \"model\": \"Civic Sport\",\n  \"year\": 2021\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cars/{{vehicleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars",
+                "{{vehicleId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Vehicle - Invalid Year (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"make\": \"Honda\",\n  \"model\": \"Civic Sport\",\n  \"year\": {{invalidYearLow}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cars/{{vehicleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars",
+                "{{vehicleId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Vehicle - Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"make\": \"Honda\",\n  \"model\": \"Civic Sport\",\n  \"year\": 2021\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cars/{{missingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars",
+                "{{missingId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Vehicle",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cars/{{vehicleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars",
+                "{{vehicleId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Vehicle - Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cars/{{missingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars",
+                "{{missingId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Vehicle CRUD endpoints. VIN length must be 11..17. Year must be 1980..2050."
+    },
+    {
+      "name": "Registration",
+      "item": [
+        {
+          "name": "Register Vehicle (Orchestrator)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const json = pm.response.json();",
+                  "const id = json.id || json.registrationId || (json.data && json.data.id);",
+                  "pm.test('Response returned an id', function () { pm.expect(id, 'id missing in response').to.be.ok; });",
+                  "pm.collectionVariables.set('registrationId', id);",
+                  "pm.test('registrationId saved (collection)', function () { pm.expect(pm.collectionVariables.get('registrationId')).to.not.be.empty; });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "/**\r",
+                  " * Pre-request script for:\r",
+                  " * POST {{baseUrl}}/api/registrations\r",
+                  " *\r",
+                  " * Goal:\r",
+                  " * - Ensure ACTIVE Owner + Agent + Vehicle exist\r",
+                  " * - Save their IDs into COLLECTION variables:\r",
+                  " *   ownerId, agentId, vehicleId\r",
+                  " *\r",
+                  " * Then your request body can stay:\r",
+                  " * {\r",
+                  " *   \"vehicleId\": \"{{vehicleId}}\",\r",
+                  " *   \"ownerId\": \"{{ownerId}}\",\r",
+                  " *   \"agentId\": \"{{agentId}}\",\r",
+                  " *   \"plate\": \"{{validPlate}}\",\r",
+                  " *   \"expiry\": \"{{validExpiry}}\"\r",
+                  " * }\r",
+                  " */\r",
+                  "\r",
+                  "const baseUrl =\r",
+                  "  pm.collectionVariables.get(\"baseUrl\") ||\r",
+                  "  pm.environment.get(\"baseUrl\") ||\r",
+                  "  \"\";\r",
+                  "\r",
+                  "if (!baseUrl) {\r",
+                  "  throw new Error(\"baseUrl is missing. Set collection variable baseUrl (e.g., http://localhost:8080).\");\r",
+                  "}\r",
+                  "\r",
+                  "const headers = { \"Content-Type\": \"application/json\" };\r",
+                  "\r",
+                  "const validAddress = pm.collectionVariables.get(\"validAddress\") || \"123 Main St, Montreal\";\r",
+                  "const validAgentRole = pm.collectionVariables.get(\"validAgentRole\") || \"CLERK\";\r",
+                  "const validMake = pm.collectionVariables.get(\"validMake\") || \"Honda\";\r",
+                  "const validModel = pm.collectionVariables.get(\"validModel\") || \"Civic\";\r",
+                  "const validYear = Number(pm.collectionVariables.get(\"validYear\") || 2020);\r",
+                  "\r",
+                  "// Use unique values every run so we don't hit duplicate constraints\r",
+                  "const now = Date.now().toString();\r",
+                  "const autoOwnerName = `Auto Owner ${now}`;\r",
+                  "const autoAgentName = `Auto Agent ${now}`;\r",
+                  "// keep <=17 chars (your API constraint)\r",
+                  "const autoVin = (`AUTO${now}`).slice(0, 17);\r",
+                  "\r",
+                  "function send(req) {\r",
+                  "  return new Promise((resolve, reject) => {\r",
+                  "    pm.sendRequest(req, (err, res) => {\r",
+                  "      if (err) return reject(err);\r",
+                  "      return resolve(res);\r",
+                  "    });\r",
+                  "  });\r",
+                  "}\r",
+                  "\r",
+                  "function extractId(json, keys) {\r",
+                  "  if (!json) return null;\r",
+                  "  for (const k of keys) {\r",
+                  "    if (json[k]) return json[k];\r",
+                  "  }\r",
+                  "  if (json.data && json.data.id) return json.data.id;\r",
+                  "  return null;\r",
+                  "}\r",
+                  "\r",
+                  "async function createOwner() {\r",
+                  "  const res = await send({\r",
+                  "    url: `${baseUrl}/api/owners`,\r",
+                  "    method: \"POST\",\r",
+                  "    header: headers,\r",
+                  "    body: { mode: \"raw\", raw: JSON.stringify({ fullName: autoOwnerName, address: validAddress }) }\r",
+                  "  });\r",
+                  "\r",
+                  "  if (![200, 201].includes(res.code)) {\r",
+                  "    throw new Error(`Create Owner failed: HTTP ${res.code} - ${res.text()}`);\r",
+                  "  }\r",
+                  "\r",
+                  "  const id = extractId(res.json(), [\"id\", \"ownerId\"]);\r",
+                  "  if (!id) throw new Error(\"Create Owner: could not find id in response.\");\r",
+                  "  pm.collectionVariables.set(\"ownerId\", id);\r",
+                  "  return id;\r",
+                  "}\r",
+                  "\r",
+                  "async function activateOwner(ownerId) {\r",
+                  "  const res = await send({\r",
+                  "    url: `${baseUrl}/api/owners/${ownerId}/activate`,\r",
+                  "    method: \"POST\"\r",
+                  "  });\r",
+                  "\r",
+                  "  if (![200, 204].includes(res.code)) {\r",
+                  "    throw new Error(`Activate Owner failed: HTTP ${res.code} - ${res.text()}`);\r",
+                  "  }\r",
+                  "}\r",
+                  "\r",
+                  "async function createAgent() {\r",
+                  "  const res = await send({\r",
+                  "    url: `${baseUrl}/api/agents`,\r",
+                  "    method: \"POST\",\r",
+                  "    header: headers,\r",
+                  "    body: { mode: \"raw\", raw: JSON.stringify({ name: autoAgentName, role: validAgentRole }) }\r",
+                  "  });\r",
+                  "\r",
+                  "  if (![200, 201].includes(res.code)) {\r",
+                  "    throw new Error(`Create Agent failed: HTTP ${res.code} - ${res.text()}`);\r",
+                  "  }\r",
+                  "\r",
+                  "  const id = extractId(res.json(), [\"id\", \"agentId\"]);\r",
+                  "  if (!id) throw new Error(\"Create Agent: could not find id in response.\");\r",
+                  "  pm.collectionVariables.set(\"agentId\", id);\r",
+                  "  return id;\r",
+                  "}\r",
+                  "\r",
+                  "async function activateAgent(agentId) {\r",
+                  "  const res = await send({\r",
+                  "    url: `${baseUrl}/api/agents/${agentId}/activate`,\r",
+                  "    method: \"POST\"\r",
+                  "  });\r",
+                  "\r",
+                  "  if (![200, 204].includes(res.code)) {\r",
+                  "    throw new Error(`Activate Agent failed: HTTP ${res.code} - ${res.text()}`);\r",
+                  "  }\r",
+                  "}\r",
+                  "\r",
+                  "async function createVehicle() {\r",
+                  "  const res = await send({\r",
+                  "    url: `${baseUrl}/api/cars`,\r",
+                  "    method: \"POST\",\r",
+                  "    header: headers,\r",
+                  "    body: {\r",
+                  "      mode: \"raw\",\r",
+                  "      raw: JSON.stringify({ vin: autoVin, make: validMake, model: validModel, year: validYear })\r",
+                  "    }\r",
+                  "  });\r",
+                  "\r",
+                  "  if (![200, 201].includes(res.code)) {\r",
+                  "    throw new Error(`Create Vehicle failed: HTTP ${res.code} - ${res.text()}`);\r",
+                  "  }\r",
+                  "\r",
+                  "  const id = extractId(res.json(), [\"id\", \"vehicleId\"]);\r",
+                  "  if (!id) throw new Error(\"Create Vehicle: could not find id in response.\");\r",
+                  "  pm.collectionVariables.set(\"vehicleId\", id);\r",
+                  "  return id;\r",
+                  "}\r",
+                  "\r",
+                  "async function activateVehicle(vehicleId) {\r",
+                  "  const res = await send({\r",
+                  "    url: `${baseUrl}/api/cars/${vehicleId}/activate`,\r",
+                  "    method: \"POST\"\r",
+                  "  });\r",
+                  "\r",
+                  "  if (![200, 204].includes(res.code)) {\r",
+                  "    throw new Error(`Activate Vehicle failed: HTTP ${res.code} - ${res.text()}`);\r",
+                  "  }\r",
+                  "}\r",
+                  "\r",
+                  "// Main\r",
+                  "(async () => {\r",
+                  "  // Always create fresh ones for the registration request (most reliable for grading)\r",
+                  "  const ownerId = await createOwner();\r",
+                  "  await activateOwner(ownerId);\r",
+                  "\r",
+                  "  const agentId = await createAgent();\r",
+                  "  await activateAgent(agentId);\r",
+                  "\r",
+                  "  const vehicleId = await createVehicle();\r",
+                  "  await activateVehicle(vehicleId);\r",
+                  "\r",
+                  "  // Ensure body variables exist (optional safety)\r",
+                  "  pm.collectionVariables.set(\"ownerId\", ownerId);\r",
+                  "  pm.collectionVariables.set(\"agentId\", agentId);\r",
+                  "  pm.collectionVariables.set(\"vehicleId\", vehicleId);\r",
+                  "\r",
+                  "  // If you want a unique plate each run to avoid 409, uncomment next line:\r",
+                  "  // pm.collectionVariables.set(\"validPlate\", (`AUT-${now.slice(-6)}`).slice(0, 10));\r",
+                  "\r",
+                  "  console.log(\"✅ Setup done:\", { ownerId, agentId, vehicleId });\r",
+                  "})().catch((e) => {\r",
+                  "  console.error(\"❌ Pre-request setup failed:\", e);\r",
+                  "  throw e;\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"ownerId\": \"{{ownerId}}\",\n  \"agentId\": \"{{agentId}}\",\n  \"plate\": \"{{validPlate}}\",\n  \"expiry\": \"{{validExpiry}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Vehicle - Invalid Plate (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"ownerId\": \"{{ownerId}}\",\n  \"agentId\": \"{{agentId}}\",\n  \"plate\": \"{{invalidPlate}}\",\n  \"expiry\": \"{{validExpiry}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Vehicle - Past Expiry (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"ownerId\": \"{{ownerId}}\",\n  \"agentId\": \"{{agentId}}\",\n  \"plate\": \"PEX-999\",\n  \"expiry\": \"{{pastExpiry}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Vehicle - Not Found IDs (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 422', function () { pm.response.to.have.status(422); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": \"{{missingId}}\",\n  \"ownerId\": \"{{missingId}}\",\n  \"agentId\": \"{{missingId}}\",\n  \"plate\": \"ZZZ-000\",\n  \"expiry\": \"{{validExpiry}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Vehicle - Duplicate Plate (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 409', function () { pm.response.to.have.status(409); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"ownerId\": \"{{ownerId}}\",\n  \"agentId\": \"{{agentId}}\",\n  \"plate\": \"{{duplicatePlate}}\",\n  \"expiry\": \"{{validExpiry}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eligibility Setup - Create Inactive Owner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const json = pm.response.json();",
+                  "const id = json.id || json.ownerId || (json.data && json.data.id);",
+                  "pm.test('Response returned an id', function () { pm.expect(id, 'id missing in response').to.be.ok; });",
+                  "pm.collectionVariables.set('inactiveOwnerId', id);",
+                  "pm.test('inactiveOwnerId saved (collection)', function () { pm.expect(pm.collectionVariables.get('inactiveOwnerId')).to.not.be.empty; });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const runId = Date.now(); // unique each run\r",
+                  "pm.collectionVariables.set(\"runId\", runId);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Inactive Owner {{runId}}\",\n  \"address\": \"123 Main St\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/owners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "owners"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eligibility Setup - Create Inactive Agent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const json = pm.response.json();",
+                  "const id = json.id || json.agentId || (json.data && json.data.id);",
+                  "pm.test('Response returned an id', function () { pm.expect(id, 'id missing in response').to.be.ok; });",
+                  "pm.collectionVariables.set('inactiveAgentId', id);",
+                  "pm.test('inactiveAgentId saved (collection)', function () { pm.expect(pm.collectionVariables.get('inactiveAgentId')).to.not.be.empty; });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const runId = Date.now(); // unique each run\r",
+                  "pm.collectionVariables.set(\"runId\", runId);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Inactive Agent {{runId}}\",\n  \"role\": \"CLERK\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agents"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eligibility Setup - Create Inactive Vehicle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const json = pm.response.json();",
+                  "const id = json.id || json.vehicleId || (json.data && json.data.id);",
+                  "pm.test('Response returned an id', function () { pm.expect(id, 'id missing in response').to.be.ok; });",
+                  "pm.collectionVariables.set('inactiveVehicleId', id);",
+                  "pm.test('inactiveVehicleId saved (collection)', function () { pm.expect(pm.collectionVariables.get('inactiveVehicleId')).to.not.be.empty; });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const runId = Date.now();\r",
+                  "pm.collectionVariables.set(\"runId\", runId);\r",
+                  "\r",
+                  "// last 6 digits only (safe length)\r",
+                  "const rid6 = String(runId).slice(-6);\r",
+                  "pm.collectionVariables.set(\"rid6\", rid6);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vin\": \"VIN{{rid6}}XYZ123\",\n  \"make\": \"Honda\",\n  \"model\": \"Civic\",\n  \"year\": 2022\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cars",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cars"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Vehicle - Ineligible Vehicle(422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 422', function () { pm.response.to.have.status(422); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": \"{{inactiveVehicleId}}\",\n  \"ownerId\": \"{{inactiveOwnerId}}\",\n  \"agentId\": \"{{inactiveAgentId}}\",\n  \"plate\": \"{{inactivePlate}}\",\n  \"expiry\": \"{{validExpiry}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Vehicle - Ineligible Owner (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 422', function () { pm.response.to.have.status(422); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"ownerId\": \"{{inactiveOwnerId}}\",\n  \"agentId\": \"{{inactiveAgentId}}\",\n  \"plate\": \"{{inactivePlate}}\",\n  \"expiry\": \"{{validExpiry}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Vehicle - Ineligible Agent (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 422', function () { pm.response.to.have.status(422); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"ownerId\": \"{{ownerId}}\",\n  \"agentId\": \"{{inactiveAgentId}}\",\n  \"plate\": \"{{inactivePlate}}\",\n  \"expiry\": \"{{validExpiry}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Registrations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Registration By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations/{{registrationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations",
+                "{{registrationId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Registration By Id - Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations/{{missingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations",
+                "{{missingId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Renew Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newExpiry\": \"{{renewExpiry}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations/{{registrationId}}/renew",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations",
+                "{{registrationId}}",
+                "renew"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Renew Registration - Past Expiry (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newExpiry\": \"{{pastExpiry}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations/{{registrationId}}/renew",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations",
+                "{{registrationId}}",
+                "renew"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Registration",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations/{{registrationId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations",
+                "{{registrationId}}",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Registration - Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations/{{missingId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations",
+                "{{missingId}}",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Registration",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations/{{registrationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations",
+                "{{registrationId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Registration - Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations/{{missingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations",
+                "{{missingId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Registration endpoints. Register uses: vehicleId, ownerId, agentId, plate, expiry. Renew uses newExpiry."
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "ownerId",
+      "value": ""
+    },
+    {
+      "key": "agentId",
+      "value": ""
+    },
+    {
+      "key": "vehicleId",
+      "value": ""
+    },
+    {
+      "key": "registrationId",
+      "value": ""
+    },
+    {
+      "key": "inactiveOwnerId",
+      "value": ""
+    },
+    {
+      "key": "inactiveAgentId",
+      "value": ""
+    },
+    {
+      "key": "inactiveVehicleId",
+      "value": ""
+    },
+    {
+      "key": "missingId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "key": "validVin",
+      "value": "1HGCM82633A004352"
+    },
+    {
+      "key": "duplicateVin",
+      "value": "1HGCM82633A004352"
+    },
+    {
+      "key": "invalidVin",
+      "value": "123"
+    },
+    {
+      "key": "validMake",
+      "value": "Honda"
+    },
+    {
+      "key": "validModel",
+      "value": "Civic"
+    },
+    {
+      "key": "validYear",
+      "value": "2020"
+    },
+    {
+      "key": "invalidYearLow",
+      "value": "1970"
+    },
+    {
+      "key": "invalidYearHigh",
+      "value": "3000"
+    },
+    {
+      "key": "validOwnerName",
+      "value": "John Doe"
+    },
+    {
+      "key": "invalidOwnerName",
+      "value": "J"
+    },
+    {
+      "key": "validAddress",
+      "value": "123 Main St, Montreal"
+    },
+    {
+      "key": "validAgentName",
+      "value": "Alice Agent"
+    },
+    {
+      "key": "invalidAgentName",
+      "value": "A"
+    },
+    {
+      "key": "validAgentRole",
+      "value": "CLERK"
+    },
+    {
+      "key": "invalidAgentRole",
+      "value": "INVALID_ROLE"
+    },
+    {
+      "key": "validPlate",
+      "value": "ABC-123"
+    },
+    {
+      "key": "duplicatePlate",
+      "value": "ABC-123"
+    },
+    {
+      "key": "invalidPlate",
+      "value": "A"
+    },
+    {
+      "key": "validExpiry",
+      "value": "2030-12-31"
+    },
+    {
+      "key": "pastExpiry",
+      "value": "2000-01-01"
+    },
+    {
+      "key": "renewExpiry",
+      "value": "2031-12-31"
+    },
+    {
+      "key": "inactivePlate",
+      "value": "INA-001"
+    },
+    {
+      "key": "runId",
+      "value": ""
+    },
+    {
+      "key": "rid6",
+      "value": ""
+    }
+  ]
+}

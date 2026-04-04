@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: cars-service
+              uri: http://cars-service:8080
+              predicates:
+                - Path=/api/cars/**
+
+            - id: owners-service
+              uri: http://owners-service:8080
+              predicates:
+                - Path=/api/owners/**
+
+            - id: agents-service
+              uri: http://agents-service:8080
+              predicates:
+                - Path=/api/agents/**
+
+            - id: registration-service
+              uri: http://registration-service:8080
+              predicates:
+                - Path=/api/registrations/**
+
+server:
+  port: 8080
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: cars-service
+        url: http://localhost:8081/v3/api-docs
+      - name: owners-service
+        url: http://localhost:8082/v3/api-docs
+      - name: agents-service
+        url: http://localhost:8083/v3/api-docs
+      - name: registration-service
+        url: http://localhost:8084/v3/api-docs

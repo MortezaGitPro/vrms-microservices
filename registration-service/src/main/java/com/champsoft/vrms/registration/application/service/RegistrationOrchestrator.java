@@ -46,7 +46,7 @@ public class RegistrationOrchestrator {
             throw new CrossContextValidationException("Agent is not eligible");
         }
 
-        var reg = new Registration(
+        var reg = Registration.createNew(
                 RegistrationId.newId(),
                 new VehicleRef(vehicleId),
                 new OwnerRef(ownerId),
