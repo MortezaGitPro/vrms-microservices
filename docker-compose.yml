@@ -3,7 +3,7 @@ version: "3.9"
 services:
   # ---------------- DATABASES ----------------
   cars-db:
-    image: postgres:16
+    image: postgres:18.3
     container_name: cars-db
     environment:
       POSTGRES_DB: cars_db
@@ -12,10 +12,10 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - cars_pg_data:/var/lib/postgresql/data
+      - cars_pg_data:/var/lib/postgresql
 
   owners-db:
-    image: postgres:16
+    image: postgres:18.3
     container_name: owners-db
     environment:
       POSTGRES_DB: owners_db
@@ -24,10 +24,10 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - owners_pg_data:/var/lib/postgresql/data
+      - owners_pg_data:/var/lib/postgresql
 
   agents-db:
-    image: postgres:16
+    image: postgres:18.3
     container_name: agents-db
     environment:
       POSTGRES_DB: agents_db
@@ -36,10 +36,10 @@ services:
     ports:
       - "5435:5432"
     volumes:
-      - agents_pg_data:/var/lib/postgresql/data
+      - agents_pg_data:/var/lib/postgresql
 
   registration-db:
-    image: postgres:16
+    image: postgres:18.3
     container_name: registration-db
     environment:
       POSTGRES_DB: registration_db
@@ -48,7 +48,7 @@ services:
     ports:
       - "5436:5432"
     volumes:
-      - registration_pg_data:/var/lib/postgresql/data
+      - registration_pg_data:/var/lib/postgresql
 
   # ---------------- SERVICES ----------------
   cars-service:
